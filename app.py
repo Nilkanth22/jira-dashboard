@@ -69,11 +69,11 @@ def load_existing_comments():
 
 @app.route('/')
 def index():
-    return send_file(get_path('dashboard.html'))
+    return send_file(get_path('index.html'))
 
 @app.route('/dashboard.html')
 def dashboard():
-    return send_file(get_path('dashboard.html'))
+    return send_file(get_path('index.html'))
 
 @app.route('/cases.json')
 def cases():
