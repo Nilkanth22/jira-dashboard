@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CENTIRO Jira</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -397,6 +398,173 @@
             background-color: #d1fae5 !important;
             color: #065f46 !important;
             font-weight: bold !important;
+        }
+
+        /* ─── Mobile Responsive ──────────────────────────────────── */
+        @media screen and (max-width: 768px) {
+            /* Header - stack vertically */
+            .header {
+                flex-direction: column;
+                padding: 12px 15px;
+                gap: 8px;
+            }
+
+            .header-left {
+                text-align: center;
+                font-size: 11px;
+            }
+
+            .header-center {
+                font-size: 16px;
+                order: -1;
+            }
+
+            .header-right {
+                font-size: 12px;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            /* Container & Card */
+            .container {
+                max-width: 100%;
+                margin: 8px auto;
+                padding: 8px;
+            }
+
+            .card {
+                padding: 12px;
+                border-radius: 10px;
+            }
+
+            /* Chart - smaller on mobile */
+            .chart-wrapper {
+                max-width: 280px;
+            }
+
+            .center-text .value {
+                font-size: 24px;
+            }
+
+            .center-text .label {
+                font-size: 9px;
+            }
+
+            /* Filter bar - stack vertically */
+            .filter-bar {
+                flex-direction: column;
+                padding: 10px;
+                gap: 8px;
+                margin-top: 15px;
+            }
+
+            .filter-bar > div:first-child {
+                flex-direction: column !important;
+                width: 100%;
+            }
+
+            .filter-bar input,
+            .filter-bar select,
+            .filter-bar .custom-dropdown {
+                width: 100% !important;
+                min-width: unset !important;
+            }
+
+            input, select {
+                min-width: unset;
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+
+            .custom-dropdown {
+                min-width: unset;
+                width: 100%;
+            }
+
+            .dropdown-btn {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+
+            /* Table - horizontal scroll with card-like feel */
+            #tableSection {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -12px;
+                padding: 0 12px;
+            }
+
+            table {
+                min-width: 900px;
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 6px 5px;
+                font-size: 11px;
+                white-space: nowrap;
+            }
+
+            /* Make comment input taller for touch */
+            td input[type="text"] {
+                font-size: 12px;
+                padding: 6px 4px;
+            }
+
+            td select {
+                font-size: 11px;
+                padding: 4px 2px;
+            }
+
+            /* Buttons easier to tap */
+            button {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+
+            #resetBtn {
+                width: 100%;
+                text-align: center;
+            }
+
+            /* Upload button always visible on mobile */
+            #uploadBtn {
+                opacity: 1 !important;
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+        }
+
+        /* ─── Small phones ───────────────────────────────────────── */
+        @media screen and (max-width: 480px) {
+            .header {
+                padding: 10px 10px;
+            }
+
+            .header-center {
+                font-size: 14px;
+            }
+
+            .header-left {
+                font-size: 10px;
+            }
+
+            .chart-wrapper {
+                max-width: 220px;
+            }
+
+            .center-text .value {
+                font-size: 20px;
+            }
+
+            .card {
+                padding: 8px;
+            }
+
+            table {
+                min-width: 800px;
+            }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
