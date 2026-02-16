@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>CENTIRO Jira</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+    <style>
+        body {
+            font-family: "Segoe UI", Arial;
+            margin: 0;
+            background: #eef2f7;
+        }
+
+        .header {
+            background: #1f2d3d;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left,
+        .header-right {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .header-left {
+            text-align: left;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #datasetSelector {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 6px;
+            outline: none;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        #datasetSelector:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #datasetSelector option {
+            background: #1f2d3d;
+            color: white;
+        }
+
+        .header-center {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: .5px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 98%;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Chart */
+        .chart-wrapper {
+            width: 100%;
+            max-width: 420px;
+            aspect-ratio: 1/1;
+            margin: auto;
+            position: relative;
+        }
+
+        .center-text {
+            position: absolute;
+            top: 48%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            width: 200px;
+        }
+
+        .center-text .label {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .center-text .value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #111827;
+            margin-top: 0;
+            width: 100%;
+            text-align: center;
+            display: block;
+        }
+
+        /* Filters */
+        .filter-bar {
+            margin-top: 40px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            background: #f4f5f7;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dfe1e6;
+        }
+
+        input,
+        select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #dfe1e6;
+            border-radius: 4px;
+            background: white;
+            color: #172b4d;
+            outline: none;
+            min-width: 150px;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #4c9aff;
+            box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.2);
+        }
+
+        button {
+            cursor: pointer;
+            background: #0052cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #0065ff;
+        }
+
+        button#resetBtn {
+            background: transparent;
+            color: #42526e;
+            text-decoration: none;
+        }
+
+        button#resetBtn:hover {
+            background: rgba(9, 30, 66, 0.08);
+            color: #172b4d;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+
+        th,
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        /* Custom Dropdown */
+        .custom-dropdown {
+            position: relative;
+            display: inline-block;
+            min-width: 180px;
+        }
+
+        .dropdown-btn {
+            background: white;
+            border: 1px solid #dfe1e6;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #172b4d;
+        }
+
+        .dropdown-btn:after {
+            content: '▼';
+            font-size: 10px;
+            margin-left: 10px;
+            color: #6b7280;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 100%;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            border: 1px solid #dfe1e6;
+            border-radius: 4px;
+            margin-top: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .dropdown-content label {
+            color: #172b4d;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 1px solid #f4f5f7;
+        }
+
+        .dropdown-content label:hover {
+            background-color: #f4f5f7;
+        }
+
+        .dropdown-content label:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        /* Checkbox styling within dropdown */
+        .dropdown-content input[type="checkbox"] {
+            margin-right: 8px;
+            min-width: auto;
+        }
+
+        th {
+            background: #f3f4f6;
+            font-weight: 600;
+            position: relative;
+            padding-right: 15px;
+        }
+
+        .resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            cursor: col-resize;
+            user-select: none;
+            height: 100%;
+            touch-action: none;
+            border-right: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .resizer:hover {
+            border-right: 2px solid #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        /* Row Highlighting */
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        tbody tr:hover {
+            background-color: #e0f2fe !important;
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        /* Ticket Counter Badge */
+        .counter-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .counter-badge .filtered {
+            color: #60a5fa;
+            font-size: 18px;
+        }
+
+        .counter-badge .total {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+        }
+
+        /* Hidden upload button */
+        #uploadBtn {
+            opacity: 0;
+            transition: opacity 0.3s;
+            cursor: pointer;
+            padding: 6px 12px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .header-center:hover #uploadBtn {
+            opacity: 1;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .header {
+                background: #1f2d3d;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .filter-bar,
+            button,
+            .resizer,
+            .chart-wrapper {
+                display: none !important;
+            }
+
+            .card {
+                box-shadow: none;
+                padding: 10px;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            th {
+                background: #f3f4f6 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            tbody tr:nth-child(even) {
+                background-color: #f9fafb !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* Hide comment input boxes in print */
+            td input {
+                border: none;
+                background: transparent;
+            }
+        }
+
+        /* Highlight current week in dropdown */
+        select option.current-week {
+            background-color: #d1fae5 !important;
+            color: #065f46 !important;
+            font-weight: bold !important;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+
+<body>
+
+    <div class="header">
+        <div id="headerMetrics" class="header-left"></div>
+        <div class="header-center">
+            Weekly Jira Status Overview
+            <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCSVUpload(event)">
+            <button id="uploadBtn" onclick="document.getElementById('csvFileInput').click()">📤 Upload CSV</button>
+        </div>
+        <div class="header-right">
+            <div id="headerDate"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+
+            <div class="chart-wrapper">
+                <canvas id="jiraChart"></canvas>
+                <div class="center-text" id="totalCenter">
+                    <div class="label">Total Cases</div>
+                    <div class="value" id="totalCount">0</div>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <div style="flex-grow:1; display:flex; gap:10px;">
+                    <input type="text" id="searchBox" placeholder="Search issues..." style="flex:2;">
+                    <div class="custom-dropdown" id="statusDropdown">
+                        <button class="dropdown-btn" onclick="toggleDropdown('statusDropdown')">All Statuses</button>
+                        <div class="dropdown-content" id="statusOptions">
+                            <!-- Options populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="custom-dropdown" id="assigneeDropdown">
+                        <button class="dropdown-btn" onclick="toggleDropdown('assigneeDropdown')">All Assignees</button>
+                        <div class="dropdown-content" id="assigneeOptions">
+                            <!-- Options populated by JS -->
+                        </div>
+                    </div>
+                    <input type="date" id="dateStart" placeholder="Start Date" title="Due Date From">
+                    <input type="date" id="dateEnd" placeholder="End Date" title="Due Date To">
+                    <div
+                        style="display:flex; align-items:center; gap:5px; background:white; padding:0 10px; border:1px solid #dfe1e6; border-radius:4px;">
+                        <input type="checkbox" id="noDateFilter" style="min-width:auto; margin:0; cursor:pointer;">
+                        <label for="noDateFilter"
+                            style="font-size:13px; cursor:pointer; user-select:none; color:#172b4d;">No Due Date</label>
+                    </div>
+                </div>
+                <button id="resetBtn">Reset Filters</button>
+                <button onclick="exportToJSON()" style="background:#10b981;">💾 Save Changes</button>
+            </div>
+
+            <div id="tableSection"></div>
+
+        </div>
+    </div>
+
+    <script>
+
+        let allCases = [];
+        let activeStatusFilter = null;
+        let currentSort = { key: null, asc: true };
+        let chartInstance = null;
+        let totalCasesCount = 0; // Track total cases for center text
+
+        // State for multi-select
+        let selectedStatuses = new Set();
+        let selectedAssignees = new Set();
+
+        // CSV Upload and Processing Functions
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let char of lines[i]) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
+
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                data.push(row);
+            }
+
+            return data;
+        }
+
+        function calculateWeekFromDate(dateStr) {
+            if (!dateStr) return '';
+
+            try {
+                const formats = [
+                    { regex: /(\d{2})\/(\w{3})\/(\d{2})/, parse: (m) => new Date(`${m[2]} ${m[1]}, 20${m[3]}`) },
+                    { regex: /(\d{2})\/(\d{2})\/(\d{2})/, parse: (m) => new Date(2000 + parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1])) }
+                ];
+
+                for (let fmt of formats) {
+                    const match = dateStr.match(fmt.regex);
+                    if (match) {
+                        const date = fmt.parse(match);
+                        const weekNum = getISOWeek(date);
+                        return `W${weekNum.toString().padStart(2, '0')}-${date.getFullYear()}`;
+                    }
+                }
+            } catch (e) {
+                console.error('Date parse error:', e);
+            }
+            return '';
+        }
+
+        async function handleCSVUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check if we're running on a server (not file://)
+            const isServer = window.location.protocol.startsWith('http');
+
+            // Try server upload first if running on http/https
+            if (isServer) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    // Check content type to ensure it's JSON (not HTML error page)
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        const result = await response.json();
+
+                        if (result.success) {
+                            alert(`✅ CSV processed successfully on server!\n\n📊 ${result.total_cases} cases imported\n💬 ${result.comments_preserved} comments preserved\n📅 ${result.weeks_preserved} planned weeks preserved\n\nRefreshing dashboard...`);
+                            window.location.reload();
+                            return; // Stop here if server upload succeeded
+                        } else {
+                            console.warn('Server upload reported error:', result.error);
+                            // Fall through to client-side processing
+                        }
+                    } else {
+                        console.warn('Server returned non-JSON response (likely HTML error page). Falling back to client-side processing.');
+                        // Fall through to client-side processing
+                    }
+                } catch (error) {
+                    console.warn('Server upload failed (network error or 404). Falling back to client-side processing.', error);
+                    // Fall through to client-side processing
+                }
+            }
+
+            // Fallback: Client-side processing
+            // This runs if:
+            // 1. We are on file:// protocol
+            // 2. Server upload failed / returned 404
+            // 3. Server returned error
+            console.log('Falling back to client-side CSV processing...');
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+                try {
+                    const csvText = e.target.result;
+                    const csvData = parseCSV(csvText);
+
+                    // Create maps of existing comments and planned weeks
+                    const existingComments = {};
+                    const existingWeeks = {};
+
+                    allCases.forEach(c => {
+                        if (c.issue_key) {
+                            if (c.comments) existingComments[c.issue_key] = c.comments;
+                            if (c.planned_for_week) existingWeeks[c.issue_key] = c.planned_for_week;
+                        }
+                    });
+
+                    // Process new CSV data
+                    const newCases = [];
+                    const statusCounts = {};
+
+                    csvData.forEach(row => {
+                        const issueKey = row['Issue key'] || '';
+                        const status = (row['Issue status'] || '').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        const targetStart = row['Target start date'] || '';
+
+                        // Count statuses
+                        if (status) {
+                            statusCounts[status] = (statusCounts[status] || 0) + 1;
+                        }
+
+                        const caseObj = {
+                            hierarchy: row['Hierarchy'] || '',
+                            issue_key: issueKey,
+                            title: row['Title'] || '',
+                            assignee: row['Assignee'] || '',
+                            target_start: targetStart,
+                            target_end: row['Target end date'] || '',
+                            components: row['Components'] || '',
+                            status: status,
+                            deliverable_type: row['Deliverable Type'] || '',
+                            comments: existingComments[issueKey] || '',
+                            planned_for_week: existingWeeks[issueKey] || calculateWeekFromDate(targetStart)
+                        };
+
+                        newCases.push(caseObj);
+                    });
+
+                    // Update global data
+                    allCases = newCases;
+                    totalCasesCount = newCases.length;
+
+                    // Create summary
+                    const summary = {
+                        total_cases: newCases.length,
+                        status_distribution: statusCounts
+                    };
+
+                    // Download updated files (since we can't save to server)
+                    downloadJSON(newCases, 'cases.json');
+                    downloadJSON(summary, 'data.json');
+
+                    alert(`✅ CSV processed successfully (Client-side)!\n\nSince server updates failed, I've downloaded the updated JSON files.\n\nPlease replace 'cases.json' and 'data.json' in your folder manually.`);
+
+                    // Reload dashboard with new data
+                    setTimeout(() => {
+                        buildChart(summary);
+                        populateFilters(newCases);
+                        renderTable(newCases);
+                        document.getElementById('totalCount').innerText = newCases.length;
+                        updateHeaderMetrics(newCases);
+                    }, 500);
+
+                } catch (error) {
+                    alert('❌ Error processing CSV: ' + error.message);
+                    console.error('CSV processing error:', error);
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+
+        function downloadJSON(data, filename) {
+            const dataStr = JSON.stringify(data, null, 4);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function loadDashboard() {
+
+            // Add cache-busting to ensure fresh data is loaded
+            const timestamp = new Date().getTime();
+            const summary = await (await fetch(`data.json?t=${timestamp}`)).json();
+            allCases = await (await fetch(`cases.json?t=${timestamp}`)).json();
+
+            totalCasesCount = summary.total_cases; // Store total count
+            document.getElementById("totalCount").innerText = summary.total_cases;
+
+            updateHeaderMetrics(allCases);
+            populateFilters(allCases);
+            buildChart(summary);
+            renderTable(allCases);
+        }
+
+        let isEditingMetrics = false;
+
+        function toggleMetricsEdit() {
+            isEditingMetrics = !isEditingMetrics;
+            updateHeaderMetrics(allCases);
+        }
+
+        function updateHeaderMetrics(data) {
+            const today = new Date();
+            const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+            const timeStr = today.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById("headerDate").innerText = `${dateStr} | ${timeStr}`;
+
+            // Calculate Last Week's Range (Mon-Fri)
+            const diffToSun = today.getDay();
+            const lastSunday = new Date(today);
+            lastSunday.setDate(today.getDate() - diffToSun);
+
+            const lastMon = new Date(lastSunday);
+            lastMon.setDate(lastSunday.getDate() - 6);
+            lastMon.setHours(0, 0, 0, 0);
+
+            const lastFri = new Date(lastMon);
+            lastFri.setDate(lastMon.getDate() + 4);
+            lastFri.setHours(23, 59, 59, 999);
+
+            // Format dates
+            const opts = { month: 'short', day: 'numeric' };
+            const dateRange = `${lastMon.toLocaleDateString('en-US', opts)} - ${lastFri.toLocaleDateString('en-US', opts)}`;
+
+            // Retrieve manual values (default to 0 if not set)
+            const manualRaised = localStorage.getItem('jira_manual_raised') || "0";
+            const manualClosed = localStorage.getItem('jira_manual_closed') || "0";
+
+            let metricsHtml = `Last Week (${dateRange}): <br>`;
+
+            if (isEditingMetrics) {
+                // Edit Mode: Inputs + Done Button
+                metricsHtml += `
+                 Raised: <input type="number" value="${manualRaised}" oninput="saveManualMetric('raised', this.value)" style="width:50px; background:rgba(255,255,255,0.1); border:none; border-bottom:1px solid #fff; color:#60a5fa; font-weight:bold; font-size:14px; text-align:center; outline:none; border-radius:4px; padding:2px;"> 
+                 | Closed: <input type="number" value="${manualClosed}" oninput="saveManualMetric('closed', this.value)" style="width:50px; background:rgba(255,255,255,0.1); border:none; border-bottom:1px solid #fff; color:#34d399; font-weight:bold; font-size:14px; text-align:center; outline:none; border-radius:4px; padding:2px;">
+                 <button onclick="toggleMetricsEdit()" style="cursor:pointer; font-size:11px; margin-left:8px; padding:3px 10px; border:none; background:#4f46e5; color:white; border-radius:4px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Done</button>`;
+            } else {
+                // View Mode: Text + Edit Button
+                metricsHtml += `
+                 Raised: <strong style="color:#60a5fa; font-size:16px;">${manualRaised}</strong> 
+                 | Closed: <strong style="color:#34d399; font-size:16px;">${manualClosed}</strong>
+                 <button onclick="toggleMetricsEdit()" style="cursor:pointer; font-size:10px; margin-left:8px; padding:2px 8px; border:none; background:transparent; color:transparent; opacity:0; width: 40px; height: 20px; position: absolute;">Edit</button>`;
+            }
+
+            document.getElementById("headerMetrics").innerHTML = metricsHtml;
+        }
+
+        function saveManualMetric(type, value) {
+            if (type === 'raised') localStorage.setItem('jira_manual_raised', value);
+            if (type === 'closed') localStorage.setItem('jira_manual_closed', value);
+        }
+
+
+        function toggleDropdown(id) {
+            document.getElementById(id).querySelector(".dropdown-content").classList.toggle("show");
+        }
+
+        // Close dropdowns when clicking outside
+        window.onclick = function (event) {
+            if (!event.target.matches('.dropdown-btn') && !event.target.closest('.dropdown-content')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        function populateFilters(data) {
+            const statusSet = new Set();
+            const assigneeSet = new Set();
+
+            data.forEach(c => {
+                if (c.status) statusSet.add(c.status);
+                if (c.assignee) assigneeSet.add(c.assignee);
+            });
+
+            // Helper to populate
+            function setupDropdown(containerId, dataSet, type) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = "";
+
+                // Select All Option
+                const selectAllLabel = document.createElement("label");
+                selectAllLabel.style.fontWeight = "600";
+                selectAllLabel.style.borderBottom = "1px solid #dfe1e6";
+                selectAllLabel.innerHTML = `<input type="checkbox" value="ALL" onchange="toggleSelectAll('${type}', this)"> Select All`;
+                container.appendChild(selectAllLabel);
+
+                Array.from(dataSet).sort().forEach(val => {
+                    const label = document.createElement("label");
+                    label.innerHTML = `<input type="checkbox" value="${val}" onchange="updateMultiSelect('${type}', this)"> ${val}`;
+                    container.appendChild(label);
+                });
+            }
+
+            setupDropdown("statusOptions", statusSet, "status");
+            setupDropdown("assigneeOptions", assigneeSet, "assignee");
+        }
+
+        function toggleSelectAll(type, sourceCheckbox) {
+            const containerId = type === 'status' ? 'statusOptions' : 'assigneeOptions';
+            const container = document.getElementById(containerId);
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]:not([value="ALL"])');
+            const set = type === 'status' ? selectedStatuses : selectedAssignees;
+
+            if (sourceCheckbox.checked) {
+                checkboxes.forEach(cb => {
+                    cb.checked = true;
+                    set.add(cb.value);
+                });
+            } else {
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                    set.delete(cb.value);
+                });
+            }
+            updateButtonText(type);
+            applyFilters();
+        }
+
+        function updateMultiSelect(type, checkbox) {
+            const set = type === 'status' ? selectedStatuses : selectedAssignees;
+            const containerId = type === 'status' ? 'statusOptions' : 'assigneeOptions';
+
+            if (checkbox.checked) {
+                set.add(checkbox.value);
+            } else {
+                set.delete(checkbox.value);
+                // Uncheck "Select All" if an individual item is unchecked
+                document.getElementById(containerId).querySelector('input[value="ALL"]').checked = false;
+            }
+
+            // Check "Select All" if all items are checked
+            const container = document.getElementById(containerId);
+            const totalItems = container.querySelectorAll('input[type="checkbox"]:not([value="ALL"])').length;
+            if (set.size === totalItems && totalItems > 0) {
+                container.querySelector('input[value="ALL"]').checked = true;
+            }
+
+            updateButtonText(type);
+            applyFilters();
+        }
+
+        function updateButtonText(type) {
+            const set = type === 'status' ? selectedStatuses : selectedAssignees;
+            const btnId = type === 'status' ? 'statusDropdown' : 'assigneeDropdown';
+            const defaultText = type === 'status' ? 'All Statuses' : 'All Assignees';
+            const btn = document.getElementById(btnId).querySelector(".dropdown-btn");
+
+            if (set.size === 0) {
+                btn.innerText = defaultText;
+                btn.style.fontWeight = "normal";
+                btn.style.color = "#172b4d";
+            } else {
+                btn.innerText = `${type === 'status' ? 'Status' : 'Assignee'} (${set.size})`;
+                btn.style.fontWeight = "600";
+                btn.style.color = "#0052cc";
+            }
+        }
+
+        function shadeColor(color, percent) {
+            let R = parseInt(color.substring(1, 3), 16);
+            let G = parseInt(color.substring(3, 5), 16);
+            let B = parseInt(color.substring(5, 7), 16);
+
+            R = parseInt(R * (100 + percent) / 100);
+            G = parseInt(G * (100 + percent) / 100);
+            B = parseInt(B * (100 + percent) / 100);
+
+            R = (R < 255) ? R : 255;
+            G = (G < 255) ? G : 255;
+            B = (B < 255) ? B : 255;
+
+            return "#" + (0x1000000 + (R << 16) + (G << 8) + B)
+                .toString(16)
+                .slice(1);
+        }
+
+        function buildChart(summary) {
+
+            const labels = Object.keys(summary.status_distribution);
+            const values = Object.values(summary.status_distribution);
+            const total = summary.total_cases;
+
+            const ctx = document.getElementById("jiraChart").getContext("2d");
+
+            // Enterprise Palette
+            const baseColors = [
+                "#4f46e5", // Indigo
+                "#0ea5e9", // Sky
+                "#10b981", // Emerald
+                "#f59e0b", // Amber
+                "#ef4444", // Rose
+                "#8b5cf6", // Violet
+                "#6366f1"  // Another Indigo
+            ];
+
+            const gradients = baseColors.map(color => {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(1, shadeColor(color, -20));
+                return gradient;
+            });
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Enable DataLabels locally for this chart
+            Chart.register(ChartDataLabels);
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: gradients.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: "#ffffff",
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    cutout: "75%",
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    layout: {
+                        padding: 20
+                    },
+                    animation: {
+                        duration: 1200,
+                        easing: "easeOutQuart"
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: "bottom",
+                            labels: {
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                padding: 20,
+                                font: { size: 12, family: "'Segoe UI', sans-serif" },
+                                color: '#4b5563',
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const meta = chart.getDatasetMeta(0);
+                                            const style = meta.controller.getStyle(i);
+                                            const value = data.datasets[0].data[i];
+
+                                            return {
+                                                text: `${label} (${value})`,
+                                                fillStyle: style.backgroundColor,
+                                                strokeStyle: style.borderColor,
+                                                lineWidth: style.borderWidth,
+                                                hidden: isNaN(value) || meta.data[i].hidden,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1f2937',
+                            bodyColor: '#4b5563',
+                            borderColor: '#e5e7eb',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6,
+                            callbacks: {
+                                label: function (context) {
+                                    const value = context.parsed;
+                                    const percent = ((value / total) * 100).toFixed(1);
+                                    return `${context.label}: ${value} (${percent}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                if (value === 0) return "";
+                                let sum = 0;
+                                let dataArr = ctx.chart.data.datasets[0].data;
+                                dataArr.map(data => {
+                                    sum += data;
+                                });
+                                let percentage = (value * 100 / sum).toFixed(1);
+                                return `${value}\n(${percentage}%)`;
+                            },
+                            color: '#fff',
+                            font: {
+                                weight: 'bold',
+                                size: 11
+                            },
+                            textAlign: 'center'
+                        }
+                    },
+                    onClick: (evt, elements) => {
+                        if (elements.length) {
+                            const index = elements[0].index;
+                            const status = labels[index];
+
+                            // Toggle behavior: if clicking the same slice, reset filters
+                            if (selectedStatuses.size === 1 && selectedStatuses.has(status)) {
+                                // Reset filters
+                                resetFilters();
+                            } else {
+                                // Filter to this status
+                                selectedStatuses.clear();
+                                selectedStatuses.add(status);
+
+                                // Update checkboxes visually
+                                document.querySelectorAll('#statusOptions input').forEach(input => {
+                                    if (input.value === "ALL") input.checked = false; // Uncheck Select All
+                                    else input.checked = input.value === status;
+                                });
+
+                                updateButtonText('status');
+                                applyFilters();
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById("totalCenter").onclick = resetFilters;
+            document.getElementById("totalCenter").style.cursor = "pointer";
+        }
+
+        function parseJiraDate(dateStr) {
+            if (!dateStr) return null;
+            // Format: dd/MMM/yy e.g. "13/Feb/26"
+            const parts = dateStr.split("/");
+            if (parts.length !== 3) return null;
+
+            const day = parseInt(parts[0], 10);
+            const monthStr = parts[1].toLowerCase();
+            const year = 2000 + parseInt(parts[2], 10); // Assuming 20xx
+
+            const months = {
+                "jan": 0, "feb": 1, "mar": 2, "apr": 3, "may": 4, "jun": 5,
+                "jul": 6, "aug": 7, "sep": 8, "oct": 9, "nov": 10, "dec": 11
+            };
+
+            if (months[monthStr] === undefined) return null;
+
+            return new Date(year, months[monthStr], day);
+        }
+
+        function applyFilters() {
+
+            const search = document.getElementById("searchBox").value.toLowerCase();
+            // Status/Assignee now handled by Set globals
+            const dateStartStr = document.getElementById("dateStart").value;
+            const dateEndStr = document.getElementById("dateEnd").value;
+            const noDate = document.getElementById("noDateFilter").checked;
+
+            const dateStart = dateStartStr ? new Date(dateStartStr) : null;
+            const dateEnd = dateEndStr ? new Date(dateEndStr) : null;
+
+            // Adjust dateEnd to end of day to include the selected day
+            if (dateEnd) dateEnd.setHours(23, 59, 59, 999);
+
+            let filtered = allCases.filter(c => {
+
+                const matchesSearch =
+                    !search ||
+                    (c.issue_key && c.issue_key.toLowerCase().includes(search)) ||
+                    (c.title && c.title.toLowerCase().includes(search));
+
+                const matchesStatus =
+                    selectedStatuses.size === 0 ||
+                    selectedStatuses.has(c.status);
+
+                const matchesAssignee =
+                    selectedAssignees.size === 0 ||
+                    selectedAssignees.has(c.assignee);
+
+                let matchesDate = true;
+
+                if (noDate) {
+                    const caseDate = parseJiraDate(c.target_end);
+                    if (caseDate) matchesDate = false; // Show only if NO date
+                } else if (dateStart || dateEnd) {
+                    const caseDate = parseJiraDate(c.target_end);
+
+                    if (!caseDate) {
+                        // If we are filtering by date, hide items without valid date
+                        matchesDate = false;
+                    } else {
+                        if (dateStart && caseDate < dateStart) matchesDate = false;
+                        if (dateEnd && caseDate > dateEnd) matchesDate = false;
+                    }
+                }
+
+                return matchesSearch && matchesStatus && matchesAssignee && matchesDate;
+            });
+
+            renderTable(filtered);
+
+            // Dynamic Chart & Total Updates
+            if (chartInstance) {
+                // 1. Update Total with 'filtered / total' format
+                const total = filtered.length;
+
+                // Update center text to show 'filtered / total'
+                if (total === totalCasesCount) {
+                    // No filter applied, show just the total
+                    document.getElementById("totalCount").innerText = total;
+                } else {
+                    // Filter applied, show 'filtered / total'
+                    document.getElementById("totalCount").innerText = `${total} / ${totalCasesCount}`;
+                }
+
+                // 2. Calculate new status counts
+                const counts = {};
+                filtered.forEach(c => {
+                    counts[c.status] = (counts[c.status] || 0) + 1;
+                });
+
+                // 3. Map to chart labels order
+                const newValues = chartInstance.data.labels.map(label => counts[label] || 0);
+
+                // 4. Update Chart
+                chartInstance.data.datasets[0].data = newValues;
+                chartInstance.update();
+            }
+        }
+
+        // Column Resizing Logic
+        let resizingCol = null;
+        let resizingColIndex = null;
+        let startX = 0;
+        let startWidth = 0;
+        let columnWidths = JSON.parse(localStorage.getItem('jira_column_widths') || '{}');
+
+        document.addEventListener('mousedown', function (e) {
+            if (e.target.classList.contains('resizer')) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                resizingCol = e.target.parentElement;
+                // Get column index from the tr children
+                const headerRow = resizingCol.parentElement;
+                resizingColIndex = Array.from(headerRow.children).indexOf(resizingCol);
+
+                startX = e.pageX;
+                startWidth = resizingCol.offsetWidth;
+
+                document.body.style.cursor = 'col-resize';
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            }
+        });
+
+        function onMouseMove(e) {
+            if (!resizingCol) return;
+            const diffX = e.pageX - startX;
+            const newWidth = startWidth + diffX;
+            if (newWidth > 30) { // Min width
+                resizingCol.style.width = newWidth + 'px';
+            }
+        }
+
+        function onMouseUp(e) {
+            if (resizingCol) {
+                // Save the final width to localStorage
+                const finalWidth = resizingCol.offsetWidth;
+                columnWidths[resizingColIndex] = finalWidth;
+                localStorage.setItem('jira_column_widths', JSON.stringify(columnWidths));
+
+                resizingCol = null;
+                resizingColIndex = null;
+                document.body.style.cursor = 'default';
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+        }
+
+        function saveComment(key, value) {
+            localStorage.setItem('jira_comment_' + key, value);
+            // Also update the case in allCases array
+            const caseIndex = allCases.findIndex(c => c.issue_key === key);
+            if (caseIndex !== -1) {
+                allCases[caseIndex].comments = value;
+                // Save to file after a delay to avoid excessive writes
+                saveCasesToFile();
+            }
+        }
+
+
+        function generateWeekOptions() {
+            // Get current date
+            const now = new Date();
+            const weeks = [];
+
+            // Calculate current week
+            const currentWeekNum = getISOWeek(now);
+            const currentYear = now.getFullYear();
+            const currentWeekStr = `W${currentWeekNum.toString().padStart(2, '0')}-${currentYear}`;
+
+            // Generate 26 weeks starting from current week
+            for (let i = 0; i < 26; i++) {
+                const futureDate = new Date(now);
+                futureDate.setDate(now.getDate() + (i * 7));
+
+                // Get ISO week number
+                const weekNum = getISOWeek(futureDate);
+                const year = futureDate.getFullYear();
+                const weekStr = `W${weekNum.toString().padStart(2, '0')}-${year}`;
+
+                // Mark if this is the current week
+                const isCurrent = weekStr === currentWeekStr;
+                weeks.push({ value: weekStr, isCurrent: isCurrent });
+            }
+
+            return weeks;
+        }
+
+        function getISOWeek(date) {
+            const target = new Date(date.valueOf());
+            const dayNr = (date.getDay() + 6) % 7;
+            target.setDate(target.getDate() - dayNr + 3);
+            const firstThursday = target.valueOf();
+            target.setMonth(0, 1);
+            if (target.getDay() !== 4) {
+                target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+            }
+            return 1 + Math.ceil((firstThursday - target) / 604800000);
+        }
+
+        function savePlannedWeek(key, value) {
+            // Save to localStorage for immediate persistence
+            localStorage.setItem('jira_planned_week_' + key, value);
+
+            // Update in-memory data
+            const caseIndex = allCases.findIndex(c => c.issue_key === key);
+            if (caseIndex !== -1) {
+                allCases[caseIndex].planned_for_week = value;
+            }
+        }
+
+        function exportToJSON() {
+            // Create JSON with all current data including comments and planned weeks
+            const dataStr = JSON.stringify(allCases, null, 4);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+            // Create download link
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'cases.json';
+            link.click();
+
+            // Clean up
+            URL.revokeObjectURL(url);
+
+            alert('Changes exported! Replace your cases.json file with the downloaded file to keep your edits.');
+        }
+
+        function sortTable(column) {
+            if (currentSort.key === column) {
+                currentSort.asc = !currentSort.asc;
+            } else {
+                currentSort.key = column;
+                currentSort.asc = true;
+            }
+            applyFilters();
+        }
+
+        function renderTable(data) {
+
+            const tableSection = document.getElementById("tableSection");
+
+            if (!data.length) {
+                tableSection.innerHTML = "<p style='text-align:center; color:#6b7280; padding:20px;'>No matching cases found.</p>";
+                return;
+            }
+
+            // Sync localStorage edits back to data objects before sorting
+            data.forEach(c => {
+                const localWeek = localStorage.getItem('jira_planned_week_' + c.issue_key);
+                if (localWeek) {
+                    c.planned_for_week = localWeek;
+                }
+                const localComment = localStorage.getItem('jira_comment_' + c.issue_key);
+                if (localComment) {
+                    c.comments = localComment;
+                }
+            });
+
+            if (currentSort.key) {
+
+                data.sort((a, b) => {
+
+                    let valA = a[currentSort.key] ?? "";
+                    let valB = b[currentSort.key] ?? "";
+
+                    // Custom date sorting for target_start/target_end
+                    if (currentSort.key === 'target_start' || currentSort.key === 'target_end') {
+                        const dateA = parseJiraDate(valA) || new Date(0);
+                        const dateB = parseJiraDate(valB) || new Date(0);
+                        return currentSort.asc ? dateA - dateB : dateB - dateA;
+                    }
+
+                    // Custom sorting for planned_for_week (W##-YYYY format)
+                    if (currentSort.key === 'planned_for_week') {
+                        const parseWeek = (weekStr) => {
+                            if (!weekStr) return { year: 0, week: 0 };
+                            const match = weekStr.match(/W(\d{2})-(\d{4})/);
+                            if (match) {
+                                return { year: parseInt(match[2]), week: parseInt(match[1]) };
+                            }
+                            return { year: 0, week: 0 };
+                        };
+
+                        const weekA = parseWeek(valA);
+                        const weekB = parseWeek(valB);
+
+                        // First sort by year, then by week
+                        if (weekA.year !== weekB.year) {
+                            return currentSort.asc ? weekA.year - weekB.year : weekB.year - weekA.year;
+                        }
+                        return currentSort.asc ? weekA.week - weekB.week : weekB.week - weekA.week;
+                    }
+
+                    // Fallback for other columns
+                    const numA = parseFloat(valA);
+                    const numB = parseFloat(valB);
+
+                    if (!isNaN(numA) && !isNaN(numB) &&
+                        currentSort.key !== 'issue_key' // Force string sort for keys if needed, though they are usually strings
+                    ) {
+                        return currentSort.asc ? numA - numB : numB - numA;
+                    }
+
+                    valA = valA.toString().toLowerCase();
+                    valB = valB.toString().toLowerCase();
+
+                    if (valA < valB) return currentSort.asc ? -1 : 1;
+                    if (valA > valB) return currentSort.asc ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            function sortIcon(column) {
+                if (currentSort.key !== column) return `<span style="opacity:0.3"> ⇅</span>`;
+                return currentSort.asc ? " ▲" : " ▼";
+            }
+
+            // Resizer div template
+            const resizer = '<div class="resizer" onclick="event.stopPropagation()"></div>';
+
+            // Helper to get width style
+            function getWidthStyle(colIndex, defaultWidth = '') {
+                if (columnWidths[colIndex]) {
+                    return `width:${columnWidths[colIndex]}px;`;
+                }
+                return defaultWidth ? `width:${defaultWidth};` : '';
+            }
+
+            let html = `
+    <table>
+    <thead>
+        <tr>
+            <th style="${getWidthStyle(0, '40px')}">#${resizer}</th>
+            <th style="${getWidthStyle(1)}"><span onclick="sortTable('issue_key')" style="cursor:pointer; display:inline-block;">Issue Key${sortIcon('issue_key')}</span>${resizer}</th>
+            <th style="${getWidthStyle(2)}"><span onclick="sortTable('title')" style="cursor:pointer; display:inline-block;">Title${sortIcon('title')}</span>${resizer}</th>
+            <th style="${getWidthStyle(3)}"><span onclick="sortTable('deliverable_type')" style="cursor:pointer; display:inline-block;">Deliverable Type${sortIcon('deliverable_type')}</span>${resizer}</th>
+            <th style="${getWidthStyle(4)}"><span onclick="sortTable('assignee')" style="cursor:pointer; display:inline-block;">Assignee${sortIcon('assignee')}</span>${resizer}</th>
+            <th style="${getWidthStyle(5)}"><span onclick="sortTable('status')" style="cursor:pointer; display:inline-block;">Status${sortIcon('status')}</span>${resizer}</th>
+            <th style="${getWidthStyle(6)}"><span onclick="sortTable('target_start')" style="cursor:pointer; display:inline-block;">Start${sortIcon('target_start')}</span>${resizer}</th>
+            <th style="${getWidthStyle(7)}"><span onclick="sortTable('target_end')" style="cursor:pointer; display:inline-block;">End${sortIcon('target_end')}</span>${resizer}</th>
+            <th style="${getWidthStyle(8, '100px')}"><span onclick="sortTable('planned_for_week')" style="cursor:pointer; display:inline-block;">Planned Week${sortIcon('planned_for_week')}</span>${resizer}</th>
+            <th style="${getWidthStyle(9, '200px')}">Comments${resizer}</th>
+        </tr>
+    </thead>
+    <tbody>
+    `;
+
+            data.forEach((c, index) => {
+                // Status pill styling
+                let statusColor = "#eee";
+                let statusText = "#333";
+
+                switch (c.status) {
+                    case "Done": statusColor = "#e3fcef"; statusText = "#006644"; break;
+                    case "In Progress": statusColor = "#deebff"; statusText = "#0747a6"; break;
+                    case "Ready For Acceptance Test": statusColor = "#d1fae5"; statusText = "#065f46"; break;
+                    case "To Do": statusColor = "#eae6ff"; statusText = "#403294"; break;
+                }
+
+                // Retrieve comment from cases data (which is preserved) or fallback to localStorage
+                const storedComment = c.comments || localStorage.getItem('jira_comment_' + c.issue_key) || "";
+
+                // Retrieve planned week from localStorage if edited, otherwise use data from JSON
+                const plannedWeek = localStorage.getItem('jira_planned_week_' + c.issue_key) || c.planned_for_week || "";
+
+                // Date Coloring Logic
+                let dateStyle = 'color:#374151;'; // Default gray
+                const endDate = parseJiraDate(c.target_end);
+
+                if (endDate) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    endDate.setHours(0, 0, 0, 0);
+
+                    if (endDate < today) {
+                        dateStyle = 'color:#ef4444; font-weight:700;'; // Red (Past)
+                    } else if (endDate.getTime() === today.getTime()) {
+                        dateStyle = 'color:#f59e0b; font-weight:700;'; // Yellow (Today)
+                    } else {
+                        dateStyle = 'color:#10b981; font-weight:700;'; // Green (Future)
+                    }
+                }
+
+                html += `
+        <tr>
+            <td style="color:#6b7280; font-size:12px;">${index + 1}</td>
+            <td style="font-weight:600; color:#0052cc;">${c.issue_key ?? ""}</td>
+            <td>${c.title ?? ""}</td>
+            <td>${c.deliverable_type ?? ""}</td>
+            <td>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:24px; height:24px; background:#dfe1e6; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; color:#172b4d;">
+                        ${c.assignee ? c.assignee.charAt(0).toUpperCase() : "?"}
+                    </div>
+                    ${c.assignee ?? "Unassigned"}
+                </div>
+            </td>
+            <td><span style="background:${statusColor}; color:${statusText}; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px; text-transform:uppercase;">${c.status ?? ""}</span></td>
+            <td>${c.target_start ?? ""}</td>
+            <td style="${dateStyle}">${c.target_end ?? ""}</td>
+            <td style="text-align:center; font-weight:600; color:#4f46e5;">
+                <select onchange="savePlannedWeek('${c.issue_key}', this.value)" 
+                        style="width:100%; border:1px solid #e5e7eb; background:white; font-size:13px; outline:none; color:#4f46e5; text-align:center; font-weight:600; padding:4px; border-radius:4px; cursor:pointer;">
+                    <option value="">Select Week...</option>
+                    ${generateWeekOptions().map(week =>
+                    `<option value="${week.value}" 
+                                class="${week.isCurrent ? 'current-week' : ''}" 
+                                ${plannedWeek === week.value ? 'selected' : ''}>
+                            ${week.value}${week.isCurrent ? ' ⭐ (Current)' : ''}
+                        </option>`
+                ).join('')}
+                </select>
+            </td>
+            <td>
+                <input type="text" 
+                       value="${storedComment}" 
+                       oninput="saveComment('${c.issue_key}', this.value)" 
+                       placeholder="Add note..."
+                       style="width:100%; border:none; background:transparent; font-size:13px; outline:none; color:#172b4d;">
+            </td>
+        </tr>
+        `;
+            });
+
+            html += "</tbody></table>";
+
+            tableSection.innerHTML = html;
+        }
+
+        function resetFilters() {
+            document.getElementById("searchBox").value = "";
+            document.getElementById("dateStart").value = "";
+            document.getElementById("dateEnd").value = "";
+            document.getElementById("noDateFilter").checked = false;
+
+            // Reset Multi-select sets
+            selectedStatuses.clear();
+            selectedAssignees.clear();
+
+            // Reset UI checkboxes
+            document.querySelectorAll('.dropdown-content input').forEach(input => input.checked = false);
+
+            // Reset Dropdown Buttons & Text
+            updateButtonText('status');
+            updateButtonText('assignee');
+
+            currentSort = { key: null, asc: true };
+            applyFilters();
+        }
+
+        document.getElementById("searchBox").addEventListener("input", applyFilters); // Live search
+        document.getElementById("dateStart").addEventListener("change", applyFilters);
+        document.getElementById("dateEnd").addEventListener("change", applyFilters);
+        document.getElementById("noDateFilter").addEventListener("change", applyFilters);
+
+        document.getElementById("resetBtn").addEventListener("click", resetFilters);
+
+        loadDashboard();
+
+        // Update time every second
+        setInterval(() => {
+            const today = new Date();
+            const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+            const timeStr = today.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById("headerDate").innerText = `${dateStr} | ${timeStr}`;
+        }, 1000);
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', function (e) {
+            // Ctrl+F or Cmd+F - Focus search box
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('searchBox').focus();
+                document.getElementById('searchBox').select();
+            }
+
+            // Escape - Reset filters
+            if (e.key === 'Escape') {
+                resetFilters();
+            }
+        });
+
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,10 @@
+{
+    "total_cases": 131,
+    "status_distribution": {
+        "Ready For Acceptance Test": 48,
+        "In Progress": 47,
+        "Backlog": 34,
+        "Waiting For Support": 1,
+        "In Review": 1
+    }
+}
