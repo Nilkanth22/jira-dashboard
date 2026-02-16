@@ -7,6 +7,9 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder='.')
 
+# Security: Secret key for session management
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(32).hex())
+
 # Configuration
 # Use absolute paths for robust deployment
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,6 +18,39 @@ ALLOWED_EXTENSIONS = {'csv'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+
+# ─── Security Headers ───────────────────────────────────────────────
+@app.after_request
+def add_security_headers(response):
+    # Content Security Policy - controls what resources the browser can load
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'"
+    )
+    # Prevent MIME type sniffing
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    # Clickjacking protection
+    response.headers['X-Frame-Options'] = 'DENY'
+    # XSS protection (legacy browsers)
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Strict Transport Security - force HTTPS for 1 year
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    # Referrer Policy - don't leak URLs to other sites
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    # Permissions Policy - disable unnecessary browser features
+    response.headers['Permissions-Policy'] = (
+        'camera=(), microphone=(), geolocation=(), '
+        'payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()'
+    )
+    # Prevent caching of sensitive data
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    return response
 
 def get_path(filename):
     """Get absolute path for a file"""
@@ -247,4 +283,6 @@ def update_week():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Debug mode only when running locally, not in production
+    debug_mode = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
+    app.run(debug=debug_mode)
