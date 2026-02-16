@@ -1182,15 +1182,22 @@
             }
         }
 
+        let saveTimers = {};
         function saveComment(key, value) {
-            localStorage.setItem('jira_comment_' + key, value);
-            // Also update the case in allCases array
+            // Update in-memory data immediately
             const caseIndex = allCases.findIndex(c => c.issue_key === key);
             if (caseIndex !== -1) {
                 allCases[caseIndex].comments = value;
-                // Save to file after a delay to avoid excessive writes
-                saveCasesToFile();
             }
+            // Debounce server save (500ms) to avoid excessive requests while typing
+            clearTimeout(saveTimers['comment_' + key]);
+            saveTimers['comment_' + key] = setTimeout(() => {
+                fetch('/update_comment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ issue_key: key, comment: value })
+                }).catch(err => console.error('Failed to save comment:', err));
+            }, 500);
         }
 
 
@@ -1235,32 +1242,36 @@
         }
 
         function savePlannedWeek(key, value) {
-            // Save to localStorage for immediate persistence
-            localStorage.setItem('jira_planned_week_' + key, value);
-
-            // Update in-memory data
+            // Update in-memory data immediately
             const caseIndex = allCases.findIndex(c => c.issue_key === key);
             if (caseIndex !== -1) {
                 allCases[caseIndex].planned_for_week = value;
             }
+            // Save to server
+            fetch('/update_week', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ issue_key: key, week: value })
+            }).catch(err => console.error('Failed to save planned week:', err));
         }
 
-        function exportToJSON() {
-            // Create JSON with all current data including comments and planned weeks
-            const dataStr = JSON.stringify(allCases, null, 4);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-
-            // Create download link
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'cases.json';
-            link.click();
-
-            // Clean up
-            URL.revokeObjectURL(url);
-
-            alert('Changes exported! Replace your cases.json file with the downloaded file to keep your edits.');
+        async function exportToJSON() {
+            try {
+                const response = await fetch('/save_all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(allCases)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('All changes saved to server successfully!');
+                } else {
+                    alert('Error saving: ' + (result.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Save failed:', err);
+                alert('Could not save to server. Check your connection.');
+            }
         }
 
         function sortTable(column) {
@@ -1281,18 +1292,6 @@
                 tableSection.innerHTML = "<p style='text-align:center; color:#6b7280; padding:20px;'>No matching cases found.</p>";
                 return;
             }
-
-            // Sync localStorage edits back to data objects before sorting
-            data.forEach(c => {
-                const localWeek = localStorage.getItem('jira_planned_week_' + c.issue_key);
-                if (localWeek) {
-                    c.planned_for_week = localWeek;
-                }
-                const localComment = localStorage.getItem('jira_comment_' + c.issue_key);
-                if (localComment) {
-                    c.comments = localComment;
-                }
-            });
 
             if (currentSort.key) {
 
@@ -1395,11 +1394,8 @@
                     case "To Do": statusColor = "#eae6ff"; statusText = "#403294"; break;
                 }
 
-                // Retrieve comment from cases data (which is preserved) or fallback to localStorage
-                const storedComment = c.comments || localStorage.getItem('jira_comment_' + c.issue_key) || "";
-
-                // Retrieve planned week from localStorage if edited, otherwise use data from JSON
-                const plannedWeek = localStorage.getItem('jira_planned_week_' + c.issue_key) || c.planned_for_week || "";
+                const storedComment = c.comments || "";
+                const plannedWeek = c.planned_for_week || "";
 
                 // Date Coloring Logic
                 let dateStyle = 'color:#374151;'; // Default gray

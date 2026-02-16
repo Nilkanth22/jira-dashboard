@@ -188,6 +188,37 @@ def update_comment():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/save_all', methods=['POST'])
+def save_all():
+    """Save all cases data at once"""
+    try:
+        cases = request.json
+        if not isinstance(cases, list):
+            return jsonify({'error': 'Invalid data format'}), 400
+
+        with open(get_path("cases.json"), "w", encoding="utf-8") as f:
+            json.dump(cases, f, indent=4, ensure_ascii=False)
+
+        # Also update data.json summary
+        status_counts = {}
+        for case in cases:
+            status = case.get('status', '')
+            if status:
+                status_counts[status] = status_counts.get(status, 0) + 1
+
+        summary = {
+            "total_cases": len(cases),
+            "status_distribution": status_counts
+        }
+
+        with open(get_path("data.json"), "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=4)
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/update_week', methods=['POST'])
 def update_week():
     """Update planned week for a specific issue"""
