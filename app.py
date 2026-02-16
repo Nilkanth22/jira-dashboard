@@ -1,14 +1,163 @@
-from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask import Flask, request, jsonify, send_from_directory, send_file, session, redirect, url_for, render_template_string
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder='.')
 
 # Security: Secret key for session management
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(32).hex())
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'jira-dashboard-secret-key-change-me')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
+
+# ─── User Authentication ────────────────────────────────────────────
+USERS = {
+    "nilkanth": generate_password_hash("centiro2024"),
+}
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            if request.is_json or request.path.endswith('.json'):
+                return jsonify({'error': 'Unauthorized'}), 401
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+LOGIN_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Login - CENTIRO Jira Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #1f2d3d 0%, #2c3e50 50%, #1a252f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 40px;
+            width: 400px;
+            max-width: 90%;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        .login-header .icon {
+            width: 60px;
+            height: 60px;
+            background: #1f2d3d;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        .login-header h1 {
+            font-size: 22px;
+            color: #1f2d3d;
+            font-weight: 700;
+        }
+        .login-header p {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        .form-group input:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        .login-btn {
+            width: 100%;
+            padding: 13px;
+            background: #1f2d3d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+        .login-btn:hover {
+            background: #2c3e50;
+        }
+        .error-msg {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            border: 1px solid #fecaca;
+            display: {{ 'block' if error else 'none' }};
+        }
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 11px;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="icon">&#x1f4ca;</div>
+            <h1>Jira Dashboard</h1>
+            <p>Sign in to access the dashboard</p>
+        </div>
+        <div class="error-msg">{{ error or '' }}</div>
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Enter your username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="login-btn">Sign In</button>
+        </form>
+        <div class="footer">CENTIRO &middot; Weekly Jira Status Overview</div>
+    </div>
+</body>
+</html>
+"""
 
 # Configuration
 # Use absolute paths for robust deployment
@@ -103,23 +252,53 @@ def load_existing_comments():
     
     return comments_map, planned_week_map
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip().lower()
+        password = request.form.get('password', '')
+
+        if username in USERS and check_password_hash(USERS[username], password):
+            session['logged_in'] = True
+            session['username'] = username
+            session.permanent = True
+            return redirect(url_for('index'))
+        else:
+            error = 'Invalid username or password. Please try again.'
+
+    return render_template_string(LOGIN_PAGE, error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     return send_file(get_path('index.html'))
 
 @app.route('/dashboard.html')
+@login_required
 def dashboard():
     return send_file(get_path('index.html'))
 
 @app.route('/cases.json')
+@login_required
 def cases():
     return send_file(get_path('cases.json'))
 
 @app.route('/data.json')
+@login_required
 def data():
     return send_file(get_path('data.json'))
 
 @app.route('/upload', methods=['POST'])
+@login_required
 def upload_csv():
     """Handle CSV upload and process it"""
     try:
@@ -198,6 +377,7 @@ def upload_csv():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/update_comment', methods=['POST'])
+@login_required
 def update_comment():
     """Update a comment for a specific issue"""
     try:
@@ -225,6 +405,7 @@ def update_comment():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/save_all', methods=['POST'])
+@login_required
 def save_all():
     """Save all cases data at once"""
     try:
@@ -256,6 +437,7 @@ def save_all():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/update_week', methods=['POST'])
+@login_required
 def update_week():
     """Update planned week for a specific issue"""
     try:
