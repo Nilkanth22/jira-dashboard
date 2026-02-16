@@ -1418,7 +1418,7 @@
                 html += `
         <tr>
             <td style="color:#6b7280; font-size:12px;">${index + 1}</td>
-            <td style="font-weight:600; color:#0052cc;">${c.issue_key ?? ""}</td>
+            <td style="font-weight:600;"><a href="https://jira.digital.ingka.com/browse/${c.issue_key ?? ""}" target="_blank" style="color:#0052cc; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${c.issue_key ?? ""}</a></td>
             <td>${c.title ?? ""}</td>
             <td>${c.deliverable_type ?? ""}</td>
             <td>
